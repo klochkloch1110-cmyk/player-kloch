@@ -1,5 +1,37 @@
 # 🚀 Changelog: GitHub Actions Integration
 
+## [1.1.0] - 2026-06-07
+
+### 🐛 Исправлено
+
+#### Критическое исправление совместимости
+- **Обновлен react-native-reanimated с 3.x на 4.4.0**
+  - React Native 0.85 **требует** New Architecture (отключить невозможно)
+  - Reanimated 3.x работает только со старой архитектурой
+  - Reanimated 4.x поддерживает New Architecture + последние версии RN
+  - Решена проблема CMake: `hermes-engine::libhermes not found`
+
+#### Изменения в конфигурации
+- Удалена deprecated настройка `newArchEnabled` из `gradle.properties`
+- RN 0.85+ автоматически использует New Architecture по умолчанию
+- Обновлен `package.json`: `react-native-reanimated: ^4.4.0`
+
+### 📝 Технические детали
+**Причина проблемы:**
+- RN 0.82+ игнорирует `newArchEnabled=false`
+- Reanimated 3.19.5 несовместим с New Architecture + RN 0.85
+- CMake не мог найти Hermes engine при сборке нативных модулей
+
+**Решение:**
+- Использование Reanimated 4.x, специально созданного для New Architecture
+- Удаление устаревших настроек из gradle.properties
+
+### 🔗 Связанные коммиты
+- `898ffdf` - Попытка отключить New Architecture (не сработало)
+- `7b2de62` - Обновление на Reanimated 4.4.0 (текущее решение)
+
+---
+
 ## [1.0.0] - 2026-06-07
 
 ### ✨ Добавлено
