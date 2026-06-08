@@ -38,8 +38,52 @@ try {
   // React Native линкует этот target обычным способом, поэтому INTERFACE library
   // не подходит — нужен обычный пустой STATIC target.
   // Реальная интеграция nitro-modules происходит через его android/CMakeLists.txt.
+  const headerFile = path.join(nitroModulesCodegenDir, 'NitroModulesSpec.h');
+  fs.writeFileSync(
+    headerFile,
+    [
+      '#pragma once',
+      '',
+      '#include <memory>',
+      '#include <string>',
+      '#include <ReactCommon/JavaTurboModule.h>',
+      '#include <ReactCommon/TurboModule.h>',
+      '',
+      'namespace facebook {',
+      'namespace react {',
+      '',
+      'std::shared_ptr<TurboModule> NitroModulesSpec_ModuleProvider(',
+      '  const std::string moduleName,',
+      '  const JavaTurboModule::InitParams &params',
+      ');',
+      '',
+      '} // namespace react',
+      '} // namespace facebook',
+      '',
+    ].join('\n')
+  );
+
   const dummyCppFile = path.join(nitroModulesCodegenDir, 'dummy.cpp');
-  fs.writeFileSync(dummyCppFile, 'void react_codegen_nitro_modules_spec_dummy() {}\n');
+  fs.writeFileSync(
+    dummyCppFile,
+    [
+      '#include "NitroModulesSpec.h"',
+      '',
+      'namespace facebook {',
+      'namespace react {',
+      '',
+      'std::shared_ptr<TurboModule> NitroModulesSpec_ModuleProvider(',
+      '  const std::string moduleName,',
+      '  const JavaTurboModule::InitParams &params',
+      ') {',
+      '  return nullptr;',
+      '}',
+      '',
+      '} // namespace react',
+      '} // namespace facebook',
+      '',
+    ].join('\n')
+  );
 
   const cmakeFile = path.join(nitroModulesCodegenDir, 'CMakeLists.txt');
   fs.writeFileSync(
@@ -48,6 +92,7 @@ try {
       '# Stub CMakeLists.txt for react-native-nitro-modules compatibility',
       'cmake_minimum_required(VERSION 3.13)',
       'add_library(react_codegen_NitroModulesSpec STATIC dummy.cpp)',
+      'target_include_directories(react_codegen_NitroModulesSpec PUBLIC .)',
       '',
     ].join('\n')
   );
