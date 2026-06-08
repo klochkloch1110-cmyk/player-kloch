@@ -35,14 +35,19 @@ try {
   }
 
   // Создаём stub CMake target, который ожидает React Native autolinking.
+  // React Native линкует этот target обычным способом, поэтому INTERFACE library
+  // не подходит — нужен обычный пустой STATIC target.
   // Реальная интеграция nitro-modules происходит через его android/CMakeLists.txt.
+  const dummyCppFile = path.join(nitroModulesCodegenDir, 'dummy.cpp');
+  fs.writeFileSync(dummyCppFile, 'void react_codegen_nitro_modules_spec_dummy() {}\n');
+
   const cmakeFile = path.join(nitroModulesCodegenDir, 'CMakeLists.txt');
   fs.writeFileSync(
     cmakeFile,
     [
       '# Stub CMakeLists.txt for react-native-nitro-modules compatibility',
       'cmake_minimum_required(VERSION 3.13)',
-      'add_library(react_codegen_NitroModulesSpec INTERFACE)',
+      'add_library(react_codegen_NitroModulesSpec STATIC dummy.cpp)',
       '',
     ].join('\n')
   );
