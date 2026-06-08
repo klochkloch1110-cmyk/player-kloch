@@ -1,4 +1,4 @@
-import jsmediatags from 'jsmediatags';
+import jsmediatags from 'jsmediatags/build2/jsmediatags';
 import RNFS from 'react-native-fs';
 import { Buffer } from 'buffer';
 import type { Track, TrackMetadata } from '../types';

@@ -30,3 +30,9 @@ declare module 'jsmediatags' {
     read,
   };
 }
+
+declare module 'jsmediatags/build2/jsmediatags' {
+  export * from 'jsmediatags';
+  import jsmediatags from 'jsmediatags';
+  export default jsmediatags;
+}
