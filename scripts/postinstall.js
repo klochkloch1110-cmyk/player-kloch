@@ -87,3 +87,44 @@ try {
   console.warn('⚠️  Не удалось создать директорию codegen для nitro-modules:', error.message);
   // Не падаем, чтобы не блокировать установку
 }
+
+const trackPlayerMusicModule = path.join(
+  __dirname,
+  '..',
+  'node_modules',
+  'react-native-track-player',
+  'android',
+  'src',
+  'main',
+  'java',
+  'com',
+  'doublesymmetry',
+  'trackplayer',
+  'module',
+  'MusicModule.kt'
+);
+
+try {
+  if (fs.existsSync(trackPlayerMusicModule)) {
+    let content = fs.readFileSync(trackPlayerMusicModule, 'utf8');
+    const originalContent = content;
+
+    // React Native 0.85 expects a non-null Bundle in Arguments.fromBundle(),
+    // while react-native-track-player 4.1.x keeps originalItem as Bundle?.
+    content = content.replace(
+      'Arguments.fromBundle(musicService.tracks[index].originalItem)',
+      'musicService.tracks[index].originalItem?.let { Arguments.fromBundle(it) }'
+    );
+    content = content.replace(
+      'else Arguments.fromBundle(\n                musicService.tracks[musicService.getCurrentTrackIndex()].originalItem\n            )',
+      'else musicService.tracks[musicService.getCurrentTrackIndex()].originalItem?.let { Arguments.fromBundle(it) }'
+    );
+
+    if (content !== originalContent) {
+      fs.writeFileSync(trackPlayerMusicModule, content);
+      console.log('✅ Применён Kotlin patch для react-native-track-player');
+    }
+  }
+} catch (error) {
+  console.warn('⚠️  Не удалось применить patch для react-native-track-player:', error.message);
+}
