@@ -1,13 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
-import { PanGestureHandler, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, {
-  useAnimatedGestureHandler,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-  runOnJS,
-} from 'react-native-reanimated';
+import { PanResponder, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { NeumorphicCard } from './NeumorphicCard';
 import { useTheme } from '../providers';
 
@@ -33,51 +25,54 @@ export const NeumorphicSlider: React.FC<NeumorphicSliderProps> = ({
   const isVertical = orientation === 'vertical';
   const sliderLength = isVertical ? 200 : 300;
   const thumbSize = 24;
+  const maxPosition = sliderLength - thumbSize;
 
   // Преобразование значения в позицию
-  const valueToPosition = (val: number) => {
-    return ((val - min) / (max - min)) * (sliderLength - thumbSize);
-  };
+  const valueToPosition = React.useCallback(
+    (val: number) => ((val - min) / (max - min)) * maxPosition,
+    [max, maxPosition, min],
+  );
 
-  const position = useSharedValue(valueToPosition(value));
+  const [position, setPosition] = React.useState(valueToPosition(value));
+  const startPositionRef = React.useRef(position);
 
   // Обновление позиции при изменении value извне
   React.useEffect(() => {
-    position.value = withSpring(valueToPosition(value));
-  }, [value]);
+    setPosition(valueToPosition(value));
+  }, [value, valueToPosition]);
 
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: any) => {
-      ctx.startPosition = position.value;
+  const updatePosition = React.useCallback(
+    (newPosition: number) => {
+      const clampedPosition = Math.max(0, Math.min(maxPosition, newPosition));
+      setPosition(clampedPosition);
+
+      const newValue = min + (clampedPosition / maxPosition) * (max - min);
+      onChange(Math.round(newValue * 10) / 10);
     },
-    onActive: (event, ctx: any) => {
-      const translation = isVertical ? -event.translationY : event.translationX;
-      let newPosition = ctx.startPosition + translation;
-      
-      // Ограничение движения
-      newPosition = Math.max(0, Math.min(sliderLength - thumbSize, newPosition));
-      position.value = newPosition;
+    [max, maxPosition, min, onChange],
+  );
 
-      // Преобразование позиции в значение
-      const newValue = min + (newPosition / (sliderLength - thumbSize)) * (max - min);
-      runOnJS(onChange)(Math.round(newValue * 10) / 10);
-    },
-  });
+  const panResponder = React.useMemo(
+    () => PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        startPositionRef.current = position;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        const translation = isVertical ? -gestureState.dy : gestureState.dx;
+        updatePosition(startPositionRef.current + translation);
+      },
+    }),
+    [isVertical, position, updatePosition],
+  );
 
-  const animatedThumbStyle = useAnimatedStyle(() => {
-    return isVertical
-      ? { bottom: position.value }
-      : { left: position.value };
-  });
-
-  const trackFillStyle = useAnimatedStyle(() => {
-    return isVertical
-      ? { height: position.value + thumbSize / 2 }
-      : { width: position.value + thumbSize / 2 };
-  });
+  const thumbStyle = isVertical ? { bottom: position } : { left: position };
+  const trackFillStyle = isVertical
+    ? { height: position + thumbSize / 2 }
+    : { width: position + thumbSize / 2 };
 
   return (
-    <GestureHandlerRootView>
+    <>
       <View
         style={[
           styles.container,
@@ -96,7 +91,7 @@ export const NeumorphicSlider: React.FC<NeumorphicSliderProps> = ({
           ]}
         >
           {/* Заполненная часть */}
-          <Animated.View
+          <View
             style={[
               styles.trackFill,
               {
@@ -110,15 +105,15 @@ export const NeumorphicSlider: React.FC<NeumorphicSliderProps> = ({
         </NeumorphicCard>
 
         {/* Ползунок */}
-        <PanGestureHandler onGestureEvent={gestureHandler}>
-          <Animated.View
+        <View
+          {...panResponder.panHandlers}
             style={[
               styles.thumb,
               {
                 width: thumbSize,
                 height: thumbSize,
               },
-              animatedThumbStyle,
+              thumbStyle,
             ]}
           >
             <NeumorphicCard
@@ -126,10 +121,9 @@ export const NeumorphicSlider: React.FC<NeumorphicSliderProps> = ({
               radius={theme.borderRadius.round}
               style={styles.thumbInner}
             />
-          </Animated.View>
-        </PanGestureHandler>
+        </View>
       </View>
-    </GestureHandlerRootView>
+    </>
   );
 };
 
